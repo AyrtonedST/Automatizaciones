@@ -1,9 +1,9 @@
 import os
-import json
+import sys
 import re
 import requests
 import subprocess
-import sys
+import pandas as pd
 
 def get_azure_token():
     result = subprocess.check_output(
@@ -15,66 +15,61 @@ def main():
     subscription_id = os.environ["AZURE_SUBSCRIPTION_ID"]
     resource_group = os.environ["AZURE_RG"]
     apim_name = os.environ["AZURE_APIM_NAME"]
+    tipo_red = os.environ["TIPO_RED"]
+
+    # Manejo de la opción "Otro"
     producto_objetivo = os.environ["PRODUCTO"]
-    nueva_url = os.environ["NUEVA_URL"]
+    if "Otro" in producto_objetivo:
+        producto_objetivo = os.environ.get("PRODUCTO_OTRO", "").strip()
 
-    # Crear directorio para almacenar los respaldos
-    backup_dir = "backups"
-    os.makedirs(backup_dir, exist_ok=True)
+    # Definir de qué columna sacar la URL
+    columna_url = 'Backend en Expressroute' if tipo_red == 'Expressroute' else 'Backend en Internet'
 
-    with open("apis_config.json", "r") as f:
-        config = json.load(f)
-
-    if producto_objetivo not in config:
-        print(f"Error: El producto '{producto_objetivo}' no existe en apis_config.json")
+    # Leer Excel
+    try:
+        df = pd.read_excel("inventario_apis.xlsx")
+        df_filtrado = df[df['Servicio'].str.strip() == producto_objetivo]
+    except Exception as e:
+        print(f"❌ Error al leer el archivo Excel: {e}")
         sys.exit(1)
 
-    apis_a_actualizar = config[producto_objetivo]
     token = get_azure_token()
     headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-        "If-Match": "*" 
+        "Authorization": f"Bearer {token}", 
+        "Content-Type": "application/json", 
+        "If-Match": "*"
     }
-
     base_url_azure = f"https://management.azure.com/subscriptions/{subscription_id}/resourceGroups/{resource_group}/providers/Microsoft.ApiManagement/service/{apim_name}/apis"
-    api_version = "?api-version=2022-08-01"
 
-    print(f"Iniciando actualización para el producto: {producto_objetivo}")
-    print(f"Nueva URL de backend: {nueva_url}\n")
+    print(f"--- Iniciando ACTUALIZACIÓN hacia: {tipo_red} ---")
+    print(f"Columna objetivo del Excel: '{columna_url}'\n")
 
-    for api_id in apis_a_actualizar:
-        policy_url = f"{base_url_azure}/{api_id}/policies/policy{api_version}"
+    for index, row in df_filtrado.iterrows():
+        api_id = str(row['API']).strip()
+        backup_path = f"backups/{api_id}.xml"
         
-        response = requests.get(policy_url, headers=headers)
-        
-        if response.status_code == 404:
-            print(f"⚠️ API '{api_id}' no encontrada en el APIM. Omitiendo...")
+        # Validación 1: ¿Existe el backup? Si falló el backup en el paso 1, no modificamos por seguridad
+        if not os.path.exists(backup_path):
+            print(f"⏩ Omitiendo '{api_id}': No se encontró su archivo de backup original.")
             continue
-        elif response.status_code != 200:
-            print(f"❌ Error al obtener '{api_id}': {response.text}")
-            continue
-
-        data = response.json()
-        policy_xml = data.get("properties", {}).get("value", "")
-
-        if not policy_xml:
-            print(f"⚠️ API '{api_id}' no tiene un XML válido. Omitiendo...")
+            
+        # Validación 2: ¿Hay una URL configurada en el Excel para esta API?
+        if pd.isna(row[columna_url]) or str(row[columna_url]).strip() == "":
+            print(f"⏩ Omitiendo '{api_id}': La celda en la columna '{columna_url}' está vacía.")
             continue
 
-        # --- FASE DE BACKUP ---
-        backup_path = os.path.join(backup_dir, f"{api_id}_backup.xml")
-        with open(backup_path, "w", encoding="utf-8") as bf:
-            bf.write(policy_xml)
-        print(f"💾 Backup original guardado localmente para {api_id}")
+        nueva_url = str(row[columna_url]).strip()
 
-        # --- FASE DE MODIFICACIÓN ---
-        policy_modificada = policy_xml
+        # Leer la política original desde el backup
+        with open(backup_path, "r", encoding="utf-8") as f:
+            policy_modificada = f.read()
+
+        # Lógica de inyección/reemplazo
         if '<set-backend-service' in policy_modificada:
             policy_modificada = re.sub(
                 r'<set-backend-service[^>]*\/>', 
                 f'<set-backend-service base-url="{nueva_url}" />', 
-                policy_modificada,
+                policy_modificada, 
                 flags=re.IGNORECASE
             )
             accion = "Reemplazada"
@@ -83,14 +78,16 @@ def main():
             policy_modificada = re.sub(
                 r'<\/inbound>', 
                 etiqueta, 
-                policy_modificada,
+                policy_modificada, 
                 flags=re.IGNORECASE
             )
             accion = "Inyectada"
 
+        # Enviar actualización a Azure
+        policy_url = f"{base_url_azure}/{api_id}/policies/policy?api-version=2022-08-01"
         payload = {
             "properties": {
-                "format": "xml",
+                "format": "xml", 
                 "value": policy_modificada
             }
         }
@@ -98,9 +95,9 @@ def main():
         put_response = requests.put(policy_url, headers=headers, json=payload)
         
         if put_response.status_code in [200, 201]:
-            print(f"✅ {api_id}: Política {accion} exitosamente.\n")
+            print(f"✅ {api_id}: Política {accion}. Nueva URL -> {nueva_url}")
         else:
-            print(f"❌ {api_id}: Error al guardar política. {put_response.text}\n")
+            print(f"❌ {api_id}: Error al subir. HTTP {put_response.status_code} - {put_response.text}")
 
 if __name__ == "__main__":
     main()
