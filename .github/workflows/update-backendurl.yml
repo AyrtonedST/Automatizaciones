@@ -1,0 +1,72 @@
+name: Actualizar Backend APIM (Por Producto)
+
+on:
+  workflow_dispatch:
+    inputs:
+      producto:
+        description: 'Servicio a actualizar'
+        required: true
+        type: choice
+        options:
+          - Modelo Dia
+          - Salud
+          - Danna Link
+          - Emisión Viajes
+          - eCommerce Autos
+          - Vida Ley
+          - Otro (Especificar abajo)
+      producto_otro:
+        description: 'Si seleccionaste "Otro", escribe el nombre exacto aquí (debe coincidir con el Excel)'
+        required: false
+        type: string
+      tipo_red:
+        description: 'Hacia dónde enrutar el tráfico'
+        required: true
+        type: choice
+        options:
+          - Expressroute
+          - Internet
+
+jobs:
+  update-policies:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v3
+
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Instalar dependencias
+        run: pip install requests pandas openpyxl
+
+      - name: Login en Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: 1. Backup de Políticas
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RG: 'rg-apim-dev'
+          AZURE_APIM_NAME: 'apim-pacifico-dev'
+          PRODUCTO: ${{ github.event.inputs.producto }}
+        run: python scripts/1_backup_policies.py
+
+      - name: 2. Subir Backup de Políticas Originales
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-politicas-${{ github.event.inputs.producto }}
+          path: backups/
+          retention-days: 7
+
+      - name: 3. Actualizar APIM
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RG: 'rg-apim-dev'
+          AZURE_APIM_NAME: 'apim-pacifico-dev'
+          PRODUCTO: ${{ github.event.inputs.producto }}
+          TIPO_RED: ${{ github.event.inputs.tipo_red }}
+        run: python scripts/2_update_policies.py
