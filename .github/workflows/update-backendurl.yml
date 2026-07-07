@@ -1,4 +1,4 @@
-name: Actualizar Backend APIM (Por Producto)
+name: Actualizar Backend APIM
 
 on:
   workflow_dispatch:
