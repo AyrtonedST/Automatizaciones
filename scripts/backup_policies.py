@@ -3,6 +3,7 @@ import sys
 import requests
 import subprocess
 import csv
+import json
 
 def get_azure_token():
     result = subprocess.check_output(
@@ -59,7 +60,11 @@ def main():
         response = requests.get(policy_url, headers=headers)
         
         if response.status_code == 200:
-            policy_xml = response.json().get("properties", {}).get("value", "")
+            # SOLUCIÓN AL BOM: Decodificamos explícitamente ignorando el caracter oculto
+            texto_limpio = response.content.decode('utf-8-sig')
+            datos_json = json.loads(texto_limpio)
+            policy_xml = datos_json.get("properties", {}).get("value", "")
+            
             with open(f"backups/{api_id}.xml", "w", encoding="utf-8") as f:
                 f.write(policy_xml)
             print(f"✅ Backup guardado: {api_id}.xml")
