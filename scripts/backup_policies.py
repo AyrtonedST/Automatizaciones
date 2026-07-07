@@ -32,8 +32,6 @@ def main():
             reader = csv.DictReader(f)
             for row in reader:
                 servicio_actual = row.get('Servicio', '').strip()
-                
-                # REGLA ESTRICTA: Solo procesa si el texto es exactamente igual al buscado
                 if servicio_actual == producto_objetivo:
                     filas_a_procesar.append(row)
     except FileNotFoundError:
@@ -45,33 +43,15 @@ def main():
         sys.exit(1)
 
     token = get_azure_token()
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    # Agregamos 'Accept' explícito para forzar a Azure a comportarse
+    headers = {
+        "Authorization": f"Bearer {token}", 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
     base_url_azure = f"https://management.azure.com/subscriptions/{subscription_id}/resourceGroups/{resource_group}/providers/Microsoft.ApiManagement/service/{apim_name}/apis"
     
-    hubo_errores = False
-    print(f"--- Iniciando BACKUP para: {producto_objetivo} ---")
-    
-    for row in filas_a_procesar:
-        api_id = row.get('API', '').strip()
-        if not api_id:
-            continue
-            
-        policy_url = f"{base_url_azure}/{api_id}/policies/policy?api-version=2022-08-01"
-        response = requests.get(policy_url, headers=headers)
-        
-        if response.status_code == 200:
-            # SOLUCIÓN AL BOM: Decodificamos explícitamente ignorando el caracter oculto
-            texto_limpio = response.content.decode('utf-8-sig')
-            datos_json = json.loads(texto_limpio)
-            policy_xml = datos_json.get("properties", {}).get("value", "")
-            
-            with open(f"backups/{api_id}.xml", "w", encoding="utf-8") as f:
-                f.write(policy_xml)
-            print(f"✅ Backup guardado: {api_id}.xml")
-        
-        elif response.status_code == 404:
-            print(f"⚠️ API '{api_id}' no tiene política personalizada aún. Creando plantilla base...")
-            plantilla_base = """<policies>
+    plantilla_base = """<policies>
     <inbound>
         <base />
     </inbound>
@@ -85,6 +65,45 @@ def main():
         <base />
     </on-error>
 </policies>"""
+
+    hubo_errores = False
+    print(f"--- Iniciando BACKUP para: {producto_objetivo} ---")
+    
+    for row in filas_a_procesar:
+        api_id = row.get('API', '').strip()
+        if not api_id:
+            continue
+            
+        policy_url = f"{base_url_azure}/{api_id}/policies/policy?api-version=2022-08-01"
+        response = requests.get(policy_url, headers=headers)
+        
+        if response.status_code == 200:
+            texto_limpio = response.content.decode('utf-8-sig').strip()
+            policy_xml = ""
+            
+            if not texto_limpio:
+                print(f"⚠️ La respuesta de '{api_id}' llegó vacía. Usando plantilla base...")
+                policy_xml = plantilla_base
+            elif texto_limpio.startswith("<"):
+                print(f"⚠️ Azure devolvió XML crudo para '{api_id}'. Procesando directamente...")
+                policy_xml = texto_limpio
+            else:
+                try:
+                    datos_json = json.loads(texto_limpio)
+                    policy_xml = datos_json.get("properties", {}).get("value", "")
+                    if not policy_xml:
+                        policy_xml = plantilla_base
+                except json.JSONDecodeError:
+                    print(f"❌ Error al interpretar JSON de '{api_id}'. Data recibida: {texto_limpio[:100]}")
+                    hubo_errores = True
+                    continue
+            
+            with open(f"backups/{api_id}.xml", "w", encoding="utf-8") as f:
+                f.write(policy_xml)
+            print(f"✅ Backup guardado: {api_id}.xml")
+        
+        elif response.status_code == 404:
+            print(f"⚠️ API '{api_id}' no tiene política personalizada aún. Creando plantilla base...")
             with open(f"backups/{api_id}.xml", "w", encoding="utf-8") as f:
                 f.write(plantilla_base)
         else:
