@@ -67,8 +67,26 @@ def main():
             with open(f"backups/{api_id}.xml", "w", encoding="utf-8") as f:
                 f.write(policy_xml)
             print(f"✅ Backup guardado: {api_id}.xml")
+        
         elif response.status_code == 404:
-            print(f"⚠️ API '{api_id}' no encontrada en el APIM.")
+            # AQUÍ ESTÁ LA CORRECCIÓN: Si no hay política, creamos la plantilla por defecto.
+            print(f"⚠️ API '{api_id}' no tiene política personalizada aún. Creando plantilla base...")
+            plantilla_base = """<policies>
+    <inbound>
+        <base />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>"""
+            with open(f"backups/{api_id}.xml", "w", encoding="utf-8") as f:
+                f.write(plantilla_base)
         else:
             print(f"❌ Error al respaldar '{api_id}'. HTTP {response.status_code}")
             hubo_errores = True
