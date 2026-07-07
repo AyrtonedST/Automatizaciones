@@ -24,18 +24,14 @@ def main():
     columna_url = 'Backend en Expressroute' if tipo_red == 'Expressroute' else 'Backend en Internet'
 
     filas_a_procesar = []
-    ultimo_servicio = ""
     
     try:
         with open('Apim-Expressroute.csv', mode='r', encoding='utf-8-sig') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 servicio_actual = row.get('Servicio', '').strip()
-                if servicio_actual:
-                    ultimo_servicio = servicio_actual
-                else:
-                    servicio_actual = ultimo_servicio
                 
+                # REGLA ESTRICTA: Solo procesa si el texto es exactamente igual al buscado
                 if servicio_actual == producto_objetivo:
                     filas_a_procesar.append(row)
     except Exception as e:
