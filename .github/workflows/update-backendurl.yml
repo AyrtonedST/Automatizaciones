@@ -28,7 +28,8 @@ on:
           - Internet
 
 jobs:
-  update-policies:
+  backup:
+    name: 1. Backup de Políticas
     runs-on: ubuntu-latest
     steps:
       - name: Checkout del código
@@ -47,26 +48,55 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: 1. Backup de Políticas
+      - name: Ejecutar Script de Backup
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           AZURE_RG: 'rg-apim-dev'
           AZURE_APIM_NAME: 'apim-pacifico-dev'
           PRODUCTO: ${{ github.event.inputs.producto }}
+          PRODUCTO_OTRO: ${{ github.event.inputs.producto_otro }}
         run: python scripts/backup_policies.py
 
-      - name: 2. Subir Backup de Políticas Originales
+      - name: Subir Backup a GitHub
         uses: actions/upload-artifact@v4
         with:
           name: backup-politicas-${{ github.event.inputs.producto }}
           path: backups/
           retention-days: 7
 
-      - name: 3. Actualizar APIM
+  update:
+    name: 2. Actualizar APIM
+    needs: backup # Esto asegura que este job no empiece hasta que el backup termine bien
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v3
+
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Instalar dependencias
+        run: pip install requests
+
+      - name: Descargar Backup previo
+        uses: actions/download-artifact@v4
+        with:
+          name: backup-politicas-${{ github.event.inputs.producto }}
+          path: backups/
+
+      - name: Login en Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Ejecutar Script de Actualización
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           AZURE_RG: 'rg-apim-dev'
           AZURE_APIM_NAME: 'apim-pacifico-dev'
           PRODUCTO: ${{ github.event.inputs.producto }}
+          PRODUCTO_OTRO: ${{ github.event.inputs.producto_otro }}
           TIPO_RED: ${{ github.event.inputs.tipo_red }}
         run: python scripts/update_policies.py
