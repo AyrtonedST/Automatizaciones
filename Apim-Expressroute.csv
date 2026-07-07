@@ -1,4 +1,4 @@
 Servicio,API,Backend en Expressroute,Backend en Internet
-Modelo Dia,API-OP-NE-Consulta-FichaCliente-Vida,https://serviciodp.pps.com.pe/API-OP-NE-Consulta-FichaCliente-Vida,https://servicio.pacifico.com.pe/API-OP-NE-Consulta-FichaCliente-Vida
-,API-OP-NE-Poliza-Rentas-Vida,https://serviciodp.pps.com.pe/SolicitudPolizaRentas/,https://servicio.pacifico.com.pe/SolicitudPolizaRentas/
-Modelo Dia,API-PRS-SegCen-PGA,https://serviciodp.pps.com.pe/rs-segcen-pga,https://servicio.pacifico.com.pe/rs-segcen-pga
+Modelo Dia,api-op-ne-consulta-fichacliente-vida-v1,https://serviciodp.pps.com.pe/API-OP-NE-Consulta-FichaCliente-Vida,https://servicio.pacifico.com.pe/API-OP-NE-Consulta-FichaCliente-Vida
+,api-op-ne-poliza-rentas-vida-v1,https://serviciodp.pps.com.pe/SolicitudPolizaRentas/,https://servicio.pacifico.com.pe/SolicitudPolizaRentas/
+Modelo Dia,api-prs-segcen-pga-v1,https://serviciodp.pps.com.pe/rs-segcen-pga,https://servicio.pacifico.com.pe/rs-segcen-pga
