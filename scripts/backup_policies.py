@@ -25,18 +25,14 @@ def main():
     os.makedirs("backups", exist_ok=True)
     
     filas_a_procesar = []
-    ultimo_servicio = ""
     
     try:
         with open('Apim-Expressroute.csv', mode='r', encoding='utf-8-sig') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 servicio_actual = row.get('Servicio', '').strip()
-                if servicio_actual:
-                    ultimo_servicio = servicio_actual
-                else:
-                    servicio_actual = ultimo_servicio
                 
+                # REGLA ESTRICTA: Solo procesa si el texto es exactamente igual al buscado
                 if servicio_actual == producto_objetivo:
                     filas_a_procesar.append(row)
     except FileNotFoundError:
@@ -44,7 +40,7 @@ def main():
         sys.exit(1)
 
     if not filas_a_procesar:
-        print(f"❌ No se encontraron APIs para el servicio: '{producto_objetivo}'")
+        print(f"❌ No se encontraron APIs para el servicio exacto: '{producto_objetivo}'")
         sys.exit(1)
 
     token = get_azure_token()
@@ -69,7 +65,6 @@ def main():
             print(f"✅ Backup guardado: {api_id}.xml")
         
         elif response.status_code == 404:
-            # AQUÍ ESTÁ LA CORRECCIÓN: Si no hay política, creamos la plantilla por defecto.
             print(f"⚠️ API '{api_id}' no tiene política personalizada aún. Creando plantilla base...")
             plantilla_base = """<policies>
     <inbound>
