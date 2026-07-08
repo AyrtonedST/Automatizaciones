@@ -4,8 +4,7 @@
   | fieldsAdd id_api_upper = upper(id_api)
 ], sourceField: azuremngm.prod.apiid, lookupField: id_api_upper,
   fields: {
-      Squad = squad_owner,
-      Tribu = tribu_owner,
-      Appcode = aplicacion_proveedor_api,
+      owner = squad_owner,
+      tribu = tribu_owner,
       descripcion
     }
