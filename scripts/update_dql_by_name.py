@@ -63,16 +63,16 @@ def main():
     # Leer los bloques de DQL desde los archivos
     try:
         # .strip() elimina saltos de línea vacíos al inicio/final que pueden quedar al copiar/pegar
-        with open("scripts/buscar.txt", "r", encoding="utf-8") as f:
+        with open("scripts/search.txt", "r", encoding="utf-8") as f:
             dql_a_buscar = f.read().strip()
-        with open("scripts/reemplazar.txt", "r", encoding="utf-8") as f:
+        with open("scripts/replace.txt", "r", encoding="utf-8") as f:
             dql_nuevo = f.read().strip()
     except FileNotFoundError as e:
         print(f"❌ Error: No se encontraron los archivos de consulta. {e}")
         return
 
     if not dql_a_buscar or not dql_nuevo:
-        print("❌ Error: Los archivos buscar.txt o reemplazar.txt están vacíos.")
+        print("❌ Error: Los archivos search.txt o replace.txt están vacíos.")
         return
 
     print("Descargando inventario de alertas desde Dynatrace...")
