@@ -11,6 +11,11 @@ on:
         description: 'Propiedades (Ej: application.technical_owner:squad, application.domain_owner:tribu)'
         required: true
         type: string
+      dry_run:
+        description: '¿Ejecutar en modo de prueba? (true = NO guardará cambios)'
+        required: true
+        type: boolean
+        default: true
 
 jobs:
   update-alerts:
@@ -34,4 +39,5 @@ jobs:
         DT_API_TOKEN: ${{ secrets.DT_API_TOKEN }}
         ALERTS_NAMES_INPUT: ${{ github.event.inputs.alerts_names }}
         PROPERTIES_INPUT: ${{ github.event.inputs.properties }}
-      run: python scripts/update_alerts_by_name.py
+        DRY_RUN_INPUT: ${{ github.event.inputs.dry_run }}
+      run: python update_alerts_by_name.py
