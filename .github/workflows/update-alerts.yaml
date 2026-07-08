@@ -1,0 +1,38 @@
+name: Inyección de Propiedades en Alertas
+
+on:
+  workflow_dispatch:
+    inputs:
+      alerts_names:
+        description: 'Lista JSON con los NOMBRES EXACTOS de las alertas a modificar'
+        required: true
+        default: '[\n  "Aumento en el tiempo de respuesta en APIs - Marketplace de pagos - MKPP - Team Williams",\n  "Otra Alerta Ejemplo"\n]'
+      properties:
+        description: 'Lista JSON de propiedades a inyectar/actualizar'
+        required: true
+        default: '[\n  {"key": "application.technical_owner", "value": "{dims:squad}"},\n  {"key": "application.domain_owner", "value": "{dims:tribu}"},\n  {"key": "application.name", "value": "{dims:application}"}\n]'
+
+jobs:
+  update-alerts:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+
+    - name: Configurar Python
+      uses: actions/actions-setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Instalar Dependencias
+      run: pip install requests
+
+    - name: Ejecutar Script de Modificación
+      env:
+        DT_TENANT_URL: ${{ secrets.DT_TENANT_URL }}
+        DT_API_TOKEN: ${{ secrets.DT_API_TOKEN }}
+        # Pasamos la lista de nombres ingresada por el usuario
+        ALERTS_NAMES_INPUT: ${{ github.event.inputs.alerts_names }}
+        PROPERTIES_INPUT: ${{ github.event.inputs.properties }}
+      run: python update_alerts_by_name.py
