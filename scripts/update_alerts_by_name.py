@@ -20,7 +20,7 @@ HEADERS = {
 
 def get_all_alerts():
     items = []
-    url = f"{DYNATRACE_URL}/api/v2/settings/objects?schemaIds={SCHEMA_ID}&fields=objectId,value,scope&adminAccess=false"
+    url = f"{DYNATRACE_URL}/api/v2/settings/objects?schemaIds={SCHEMA_ID}&fields=objectId,value,scope&adminAccess=true"
     
     while url:
         response = requests.get(url, headers=HEADERS)
