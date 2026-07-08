@@ -1,0 +1,15 @@
+//Añadir squad, tribu y appcode
+| fieldsAdd api_base = replaceString(azuremngm.prod.apiid, "-V1", "")
+| fieldsAdd api_base = replaceString(api_base, "-V2", "")
+| fieldsAdd api_base = replaceString(api_base, "-V3", "")
+| lookup [ 
+  load "/lookups/port/apis"
+  |fields title, properties[domain_owner], relations[technical_owner], relations[application]
+  |lookup [
+    load "/lookups/port/technical_team"
+    |fields title, identifier
+  ],sourceField:`relations[technical_owner]`, lookupField:identifier
+  |fields api = upper(title), squad = lookup.title, tribu = `properties[domain_owner]`, application = `relations[application]`
+], sourceField: api_base, lookupField: api
+|fieldsrename squad = lookup.squad, tribu = lookup.tribu, application = lookup.application
+|fieldsRemove lookup.api
