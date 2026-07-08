@@ -4,9 +4,10 @@ import requests
 # ==========================================
 # CONFIGURACIÓN DEL ENTORNO
 # ==========================================
+# Acepta tanto URLs clásicas como del nuevo Platform (Gen3)
 DYNATRACE_URL = os.environ.get("DT_TENANT_URL", "").rstrip('/')
 API_TOKEN = os.environ.get("DT_API_TOKEN", "")
-SCHEMA_ID = "builtin:anomaly-detection.dql-rule" 
+SCHEMA_ID = "builtin:davis.anomaly-detectors" 
 
 if not DYNATRACE_URL or not API_TOKEN:
     print("❌ Faltan las variables de entorno DT_TENANT_URL o DT_API_TOKEN.")
@@ -20,7 +21,7 @@ HEADERS = {
 
 def get_all_alerts():
     items = []
-    url = f"{DYNATRACE_URL}/api/v2/settings/objects?schemaIds={SCHEMA_ID}&fields=objectId,value,scope&adminAccess=true"
+    url = f"{DYNATRACE_URL}/api/v2/settings/objects?schemaIds={SCHEMA_ID}&fields=objectId,value,scope&adminAccess=false"
     
     while url:
         response = requests.get(url, headers=HEADERS)
@@ -49,6 +50,10 @@ def update_alert(object_id, alert_title, value_payload):
         print(f"❌ Error al actualizar '{alert_title}': {response.status_code} - {response.text}")
 
 def main():
+    dry_run = os.environ.get("DRY_RUN_INPUT", "true").lower() == "true"
+    if dry_run:
+        print("⚠️ MODO DRY RUN ACTIVADO: No se aplicará ningún cambio en la plataforma.\n")
+
     raw_names_input = os.environ.get("ALERTS_NAMES_INPUT", "")
     raw_props_input = os.environ.get("PROPERTIES_INPUT", "")
     
@@ -65,7 +70,7 @@ def main():
                 key = key.strip()
                 val = val.strip()
                 
-                # Si el usuario ingresó solo el valor (ej. squad), lo convertimos a '{dims:squad}' automáticamente
+                # Si el valor no tiene {dims:...}, se lo agregamos automáticamente
                 if not val.startswith("{"):
                     val = f"{{dims:{val}}}"
                     
@@ -91,7 +96,6 @@ def main():
         
         alert_title = value.get('name', value.get('title', 'Sin título'))
         
-        # Filtrar solo las alertas que coincidan con los nombres ingresados
         if alert_title not in selected_names:
             continue
 
@@ -101,7 +105,6 @@ def main():
         propiedades_actuales = event_template.get("properties", [])
         modificado = False
 
-        # Inyectar o actualizar las propiedades
         for prop in properties_to_add:
             key_target = prop.get("key")
             val_target = prop.get("value")
@@ -113,25 +116,32 @@ def main():
                     if p.get("value") != val_target:
                         p["value"] = val_target
                         modificado = True
-                        print(f"   * Actualizando valor: {key_target} -> {val_target}")
+                        print(f"   * Preparando actualización de valor: {key_target} -> {val_target}")
                     break
             
             if not existe:
                 propiedades_actuales.append({"key": key_target, "value": val_target})
                 modificado = True
-                print(f"   + Agregando nueva propiedad: {key_target} -> {val_target}")
+                print(f"   + Preparando nueva propiedad: {key_target} -> {val_target}")
 
-        # Guardar si hubo cambios
         if modificado:
             event_template["properties"] = propiedades_actuales
             value["eventTemplate"] = event_template
-            update_alert(object_id, alert_title, value)
+            
+            if not dry_run:
+                update_alert(object_id, alert_title, value)
+            else:
+                print(f"   -> [DRY RUN] La alerta requeriría un PUT a la API (Omitido).")
+                
             alerts_modificadas += 1
         else:
             print("   -> No requirió cambios (propiedades ya estaban idénticas).")
 
     print(f"\n--------------------------------------------------")
-    print(f"Proceso completado. Alertas modificadas: {alerts_modificadas}")
+    if dry_run:
+        print(f"Simulación completada. {alerts_modificadas} alertas habrían sido modificadas.")
+    else:
+        print(f"Proceso completado. Alertas modificadas: {alerts_modificadas}")
 
 if __name__ == "__main__":
     main()
