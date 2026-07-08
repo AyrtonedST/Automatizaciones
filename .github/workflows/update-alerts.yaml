@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       alerts_names:
-        description: 'Lista JSON con los NOMBRES EXACTOS de las alertas a modificar'
+        description: 'Nombres de las alertas (separados por coma)'
         required: true
-        default: '[\n  "Aumento en el tiempo de respuesta en APIs - Marketplace de pagos - MKPP - Team Williams",\n  "Otra Alerta Ejemplo"\n]'
+        type: string
       properties:
-        description: 'Lista JSON de propiedades a inyectar/actualizar'
+        description: 'Propiedades (Ej: application.technical_owner:squad, application.domain_owner:tribu)'
         required: true
-        default: '[\n  {"key": "application.technical_owner", "value": "{dims:squad}"},\n  {"key": "application.domain_owner", "value": "{dims:tribu}"},\n  {"key": "application.name", "value": "{dims:application}"}\n]'
+        type: string
 
 jobs:
   update-alerts:
@@ -32,7 +32,6 @@ jobs:
       env:
         DT_TENANT_URL: ${{ secrets.DT_TENANT_URL }}
         DT_API_TOKEN: ${{ secrets.DT_API_TOKEN }}
-        # Pasamos la lista de nombres ingresada por el usuario
         ALERTS_NAMES_INPUT: ${{ github.event.inputs.alerts_names }}
         PROPERTIES_INPUT: ${{ github.event.inputs.properties }}
-      run: python update_alerts_by_name.py
+      run: python scripts/update_alerts_by_name.py
