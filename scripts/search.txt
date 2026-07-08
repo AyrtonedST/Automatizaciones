@@ -1,9 +1,11 @@
-| lookup [ 
+//Añadir squad, tribu y appcode
+| lookup [
   load "/lookups/inventories/apis"
   | fieldsAdd id_api_upper = upper(id_api)
 ], sourceField: azuremngm.prod.apiid, lookupField: id_api_upper,
   fields: {
-      owner = squad_owner,
-      tribu = tribu_owner,
+      Squad = squad_owner,
+      Tribu = tribu_owner,
+      Appcode = aplicacion_proveedor_api,
       descripcion
     }
