@@ -1,0 +1,39 @@
+name: Actualización de Query DQL en Alertas
+
+on:
+  workflow_dispatch:
+    inputs:
+      alerts_names:
+        description: 'Nombres de las alertas (separados por coma)'
+        required: true
+        type: string
+      dry_run:
+        description: '¿Ejecutar en modo de prueba? (true = NO guardará cambios)'
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  update-dql:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+
+    - name: Configurar Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Instalar Dependencias
+      run: pip install requests
+
+    - name: Ejecutar Script de Modificación
+      env:
+        DT_TENANT_URL: ${{ secrets.DT_TENANT_URL }}
+        DT_API_TOKEN: ${{ secrets.DT_API_TOKEN }}
+        ALERTS_NAMES_INPUT: ${{ github.event.inputs.alerts_names }}
+        DRY_RUN_INPUT: ${{ github.event.inputs.dry_run }}
+      # Apuntamos al nuevo script en la carpeta scripts/
+      run: python scripts/update_dql_by_name.py
