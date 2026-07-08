@@ -40,4 +40,4 @@ jobs:
         ALERTS_NAMES_INPUT: ${{ github.event.inputs.alerts_names }}
         PROPERTIES_INPUT: ${{ github.event.inputs.properties }}
         DRY_RUN_INPUT: ${{ github.event.inputs.dry_run }}
-      run: python update_alerts_by_name.py
+      run: python scripts/update_alerts_by_name.py
