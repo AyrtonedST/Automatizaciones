@@ -1,6 +1,5 @@
 import os
 import requests
-import json
 
 # ==========================================
 # CONFIGURACIÓN DEL ENTORNO
@@ -20,7 +19,6 @@ HEADERS = {
 }
 
 def get_all_alerts():
-    """Obtiene todos los objetos del schema iterando sobre la paginación."""
     items = []
     url = f"{DYNATRACE_URL}/api/v2/settings/objects?schemaIds={SCHEMA_ID}&fields=objectId,value,scope&adminAccess=false"
     
@@ -39,7 +37,6 @@ def get_all_alerts():
     return items
 
 def update_alert(object_id, alert_title, value_payload):
-    """Aplica los cambios en Dynatrace."""
     url = f"{DYNATRACE_URL}/api/v2/settings/objects/{object_id}"
     payload = {
         "schemaId": SCHEMA_ID,
@@ -52,33 +49,49 @@ def update_alert(object_id, alert_title, value_payload):
         print(f"❌ Error al actualizar '{alert_title}': {response.status_code} - {response.text}")
 
 def main():
-    # 1. Cargar las propiedades y los NOMBRES enviados por GitHub Actions
-    try:
-        properties_to_add = json.loads(os.environ.get("PROPERTIES_INPUT", "[]"))
-        selected_names = json.loads(os.environ.get("ALERTS_NAMES_INPUT", "[]"))
-    except Exception as e:
-        print(f"❌ Error al parsear los inputs JSON: {e}")
-        exit(1)
+    raw_names_input = os.environ.get("ALERTS_NAMES_INPUT", "")
+    raw_props_input = os.environ.get("PROPERTIES_INPUT", "")
+    
+    # 1. Limpiar y separar los nombres de las alertas
+    selected_names = [name.strip() for name in raw_names_input.split(",") if name.strip()]
+
+    # 2. Convertir el input simple (key:value) en el formato que necesita Dynatrace
+    properties_to_add = []
+    if raw_props_input:
+        pairs = raw_props_input.split(",")
+        for pair in pairs:
+            if ":" in pair:
+                key, val = pair.split(":", 1)
+                key = key.strip()
+                val = val.strip()
+                
+                # Si el usuario ingresó solo el valor (ej. squad), lo convertimos a '{dims:squad}' automáticamente
+                if not val.startswith("{"):
+                    val = f"{{dims:{val}}}"
+                    
+                properties_to_add.append({"key": key, "value": val})
 
     if not selected_names:
         print("⚠️ No se proporcionaron nombres de alertas para modificar.")
         return
+        
+    if not properties_to_add:
+        print("⚠️ No se proporcionaron propiedades válidas. Usa el formato key:value.")
+        return
 
     print("Descargando inventario de alertas desde Dynatrace...")
     todas_las_alertas = get_all_alerts()
-    print(f"Se encontraron {len(todas_las_alertas)} alertas en total en el tenant.")
 
     alerts_modificadas = 0
 
-    # 2. Iterar sobre todas las alertas y filtrar por nombre
+    # 3. Iterar y modificar
     for alert in todas_las_alertas:
         object_id = alert.get("objectId")
         value = alert.get("value", {})
         
-        # Extraemos el nombre (algunos schemas usan 'name', otros 'title')
         alert_title = value.get('name', value.get('title', 'Sin título'))
         
-        # Validar si el nombre exacto de la alerta está en nuestra lista de inputs
+        # Filtrar solo las alertas que coincidan con los nombres ingresados
         if alert_title not in selected_names:
             continue
 
@@ -88,7 +101,7 @@ def main():
         propiedades_actuales = event_template.get("properties", [])
         modificado = False
 
-        # 3. Inyectar o actualizar las propiedades solicitadas
+        # Inyectar o actualizar las propiedades
         for prop in properties_to_add:
             key_target = prop.get("key")
             val_target = prop.get("value")
@@ -108,14 +121,14 @@ def main():
                 modificado = True
                 print(f"   + Agregando nueva propiedad: {key_target} -> {val_target}")
 
-        # 4. Guardar cambios si hubo alguna alteración
+        # Guardar si hubo cambios
         if modificado:
             event_template["properties"] = propiedades_actuales
             value["eventTemplate"] = event_template
             update_alert(object_id, alert_title, value)
             alerts_modificadas += 1
         else:
-            print("   -> No requirió cambios (propiedades ya estaban correctas).")
+            print("   -> No requirió cambios (propiedades ya estaban idénticas).")
 
     print(f"\n--------------------------------------------------")
     print(f"Proceso completado. Alertas modificadas: {alerts_modificadas}")
