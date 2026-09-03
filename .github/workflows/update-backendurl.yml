@@ -9,11 +9,7 @@ on:
         type: choice
         options:
           - Modelo Dia
-          - Salud
-          - Danna Link
-          - Emisión Viajes
-          - eCommerce Autos
-          - Vida Ley
+          - Soat Yape
           - Otro (Especificar abajo)
       producto_otro:
         description: 'Si seleccionaste "Otro", escribe el nombre exacto aquí (debe coincidir con el Excel)'
