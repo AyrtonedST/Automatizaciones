@@ -1,0 +1,58 @@
+name: Backup APIM (Solo Respaldo)
+
+on:
+  workflow_dispatch:
+    inputs:
+      producto:
+        description: 'Servicio a respaldar'
+        required: true
+        type: choice
+        options:
+          - Modelo Dia
+          - Salud
+          - Danna Link
+          - Emisión Viajes
+          - eCommerce Autos
+          - Vida Ley
+          - Otro (Especificar abajo)
+      producto_otro:
+        description: 'Si seleccionaste "Otro", escribe el nombre exacto aquí'
+        required: false
+        type: string
+
+jobs:
+  test_backup:
+    name: Probar Backup de Políticas
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v3
+
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Instalar dependencias
+        run: pip install requests
+
+      - name: Login en Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Ejecutar Script de Backup
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RG: 'rgpacificoprod'
+          AZURE_APIM_NAME: 'ApiMgmt-pacificoProd'
+          PRODUCTO: ${{ github.event.inputs.producto }}
+          PRODUCTO_OTRO: ${{ github.event.inputs.producto_otro }}
+        run: python scripts/backup_policies.py
+
+      - name: Subir Backup a GitHub para Revisión
+        uses: actions/upload-artifact@v4
+        with:
+          name: prueba-backup-${{ github.event.inputs.producto }}
+          path: backups/
+          retention-days: 1
