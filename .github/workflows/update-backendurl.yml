@@ -51,22 +51,30 @@ jobs:
       - name: Ejecutar Script de Backup
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_RG: 'rg-apim-dev'
-          AZURE_APIM_NAME: 'apim-pacifico-dev'
+          AZURE_RG: 'rgpacificoprod'
+          AZURE_APIM_NAME: 'ApiMgmt-pacificoProd'
           PRODUCTO: ${{ github.event.inputs.producto }}
           PRODUCTO_OTRO: ${{ github.event.inputs.producto_otro }}
         run: python scripts/backup_policies.py
 
+      - name: Determinar nombre del servicio
+        run: |
+          if [ "${{ github.event.inputs.producto }}" == "Otro (Especificar abajo)" ]; then
+            echo "NOMBRE_SERVICIO=${{ github.event.inputs.producto_otro }}" >> $GITHUB_ENV
+          else
+            echo "NOMBRE_SERVICIO=${{ github.event.inputs.producto }}" >> $GITHUB_ENV
+          fi
+
       - name: Subir Backup a GitHub
         uses: actions/upload-artifact@v4
         with:
-          name: backup-politicas-${{ github.event.inputs.producto }}
+          name: backup-${{ env.NOMBRE_SERVICIO }}
           path: backups/
           retention-days: 7
 
   update:
     name: 2. Actualizar APIM
-    needs: backup # Esto asegura que este job no empiece hasta que el backup termine bien
+    needs: backup 
     runs-on: ubuntu-latest
     steps:
       - name: Checkout del código
@@ -80,10 +88,19 @@ jobs:
       - name: Instalar dependencias
         run: pip install requests
 
+      # <-- ¡AQUÍ ESTÁ EL AJUSTE! Repetimos el paso para que el job update conozca la variable -->
+      - name: Determinar nombre del servicio
+        run: |
+          if [ "${{ github.event.inputs.producto }}" == "Otro (Especificar abajo)" ]; then
+            echo "NOMBRE_SERVICIO=${{ github.event.inputs.producto_otro }}" >> $GITHUB_ENV
+          else
+            echo "NOMBRE_SERVICIO=${{ github.event.inputs.producto }}" >> $GITHUB_ENV
+          fi
+
       - name: Descargar Backup previo
         uses: actions/download-artifact@v4
         with:
-          name: backup-politicas-${{ github.event.inputs.producto }}
+          name: backup-${{ env.NOMBRE_SERVICIO }}
           path: backups/
 
       - name: Login en Azure
