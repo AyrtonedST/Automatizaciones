@@ -69,14 +69,18 @@ def main():
         if not api_id:
             continue
             
-        # 1. Agregado format=rawxml para traer el código puro
         policy_url = f"{base_url_azure}/{api_id}/policies/policy?api-version=2022-08-01&format=rawxml"
         response = requests.get(policy_url, headers=headers)
         
         if response.status_code == 200:
-            policy_xml = response.text.strip()
+            try:
+                # Extraemos estrictamente el nodo XML del JSON devuelto
+                datos_json = response.json()
+                policy_xml = datos_json.get("properties", {}).get("value", "").strip()
+            except Exception as e:
+                print(f"❌ Error al interpretar JSON de '{api_id}': {e}. Abortando.")
+                sys.exit(1)
             
-            # 2. Seguro CRÍTICO: Falla el job si el texto está vacío
             if not policy_xml:
                 print(f"❌ CRÍTICO: La API '{api_id}' devolvió un texto vacío. Abortando para proteger Producción.")
                 sys.exit(1) 
@@ -90,7 +94,6 @@ def main():
             with open(f"backups/{api_id}.xml", "w", encoding="utf-8") as f:
                 f.write(plantilla_base)
         else:
-            # 3. Falla el job ante cualquier otro error HTTP
             print(f"❌ Error al respaldar '{api_id}'. HTTP {response.status_code}. Abortando.")
             sys.exit(1)
 
