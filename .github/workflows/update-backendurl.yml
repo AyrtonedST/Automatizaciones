@@ -94,8 +94,8 @@ jobs:
       - name: Ejecutar Script de Actualización
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_RG: 'rg-apim-dev'
-          AZURE_APIM_NAME: 'apim-pacifico-dev'
+          AZURE_RG: 'rgpacificoprod'
+          AZURE_APIM_NAME: 'ApiMgmt-pacificoProd'
           PRODUCTO: ${{ github.event.inputs.producto }}
           PRODUCTO_OTRO: ${{ github.event.inputs.producto_otro }}
           TIPO_RED: ${{ github.event.inputs.tipo_red }}
