@@ -42,6 +42,7 @@ def main():
     headers = {
         "Authorization": f"Bearer {token}", 
         "Content-Type": "application/json", 
+        "Accept": "application/json",
         "If-Match": "*"
     }
     base_url_azure = f"https://management.azure.com/subscriptions/{subscription_id}/resourceGroups/{resource_group}/providers/Microsoft.ApiManagement/service/{apim_name}/apis"
