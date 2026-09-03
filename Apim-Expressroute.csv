@@ -1,0 +1,8 @@
+Servicio,API,Backend en Expressroute,Backend en Internet
+Modelo Dia,API-FC-INT-GESTIONSOLICITUDPOLIZAVIDA,https://serviciodp.pps.com.pe/SolicitudDigital/,https://servicio.pacifico.com.pe/SolicitudDigital/
+Modelo Dia,API-PRS-RENTA-COMUN-VIDA,https://serviciodp.pps.com.pe/PortalAsesoriaDigital.Comun,https://serviciodp.pps.com.pe/PortalAsesoriaDigital.Comun
+Modelo Dia,API-PRS-GENERACION-ESTADO-CUENTA-VIDA,https://serviciodp.pps.com.pe/API_EstadoCuentaVida,https://serviciodp.pps.com.pe/API_EstadoCuentaVida
+Modelo Dia,API-PRS-SEGCEN-PGA,https://serviciodp.pps.com.pe/rs-segcen-pga,https://serviciodp.pps.com.pe/rs-segcen-pga
+Modelo Dia,API-OP-NE-VENTA-VIAP-VIDA,https://serviciodp.pps.com.pe/SolicitudDigital,https://serviciodp.pps.com.pe/SolicitudDigital
+Modelo Dia,API-OP-NE-VENTA-DESGRAVAMENDIGITAL-VIDA,https://serviciodp.pps.com.pe/desgravamendigital,https://serviciodp.pps.com.pe/desgravamendigital
+Soat Yape,API-OP-NE-COTIZA-POLIZA-SOAT-GW-PGA,https://serviciodp.pps.com.pe/rs-op-ne-cotizacion-cotiza-poliza-soat-gw-pc-pga/api/v1/,https://servicio.pacifico.com.pe/rs-op-ne-cotizacion-cotiza-poliza-soat-gw-pc-pga/api/v1/
