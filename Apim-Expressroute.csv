@@ -6,3 +6,4 @@ Modelo Dia,API-PRS-SEGCEN-PGA,https://serviciodp.pps.com.pe/rs-segcen-pga,https:
 Modelo Dia,API-OP-NE-VENTA-VIAP-VIDA,https://serviciodp.pps.com.pe/SolicitudDigital,https://serviciodp.pps.com.pe/SolicitudDigital
 Modelo Dia,API-OP-NE-VENTA-DESGRAVAMENDIGITAL-VIDA,https://serviciodp.pps.com.pe/desgravamendigital,https://serviciodp.pps.com.pe/desgravamendigital
 Soat Yape,API-OP-NE-COTIZA-POLIZA-SOAT-GW-PGA,https://serviciodp.pps.com.pe/rs-op-ne-cotizacion-cotiza-poliza-soat-gw-pc-pga/api/v1/,https://servicio.pacifico.com.pe/rs-op-ne-cotizacion-cotiza-poliza-soat-gw-pc-pga/api/v1/
+Contingencia,API-OP-NE-CONSULTA-FICHACLIENTE-VIDA,https://serviciodp.pps.com.pe/APIFichaCliente/,https://servicio.pacifico.com.pe/APIFichaCliente/
