@@ -25,17 +25,16 @@ jobs:
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
-          python -c '
+          cat << 'EOF' > run_rollback.py
           import os, subprocess, requests
           
-          # Obtener token de acceso
+          sub_id = os.environ["AZURE_SUBSCRIPTION_ID"]
           token = subprocess.check_output(["az", "account", "get-access-token", "--query", "accessToken", "-o", "tsv"]).decode("utf-8").strip()
           
-          # Leer el XML de contingencia
           with open("rollback_ficha.xml", "r", encoding="utf-8") as f:
               xml_content = f.read()
               
-          url = f"https://management.azure.com/subscriptions/{os.environ[\"AZURE_SUBSCRIPTION_ID\"]}/resourceGroups/rgpacificoprod/providers/Microsoft.ApiManagement/service/ApiMgmt-pacificoProd/apis/api-op-ne-consulta-fichacliente-vida/policies/policy?api-version=2022-08-01"
+          url = f"https://management.azure.com/subscriptions/{sub_id}/resourceGroups/rgpacificoprod/providers/Microsoft.ApiManagement/service/ApiMgmt-pacificoProd/apis/api-op-ne-consulta-fichacliente-vida/policies/policy?api-version=2022-08-01"
           
           headers = {
               "Authorization": f"Bearer {token}",
@@ -51,4 +50,5 @@ jobs:
           else:
               print(f"❌ Error {res.status_code}: {res.text}")
               exit(1)
-          '
+          EOF
+          python run_rollback.py
