@@ -1,0 +1,54 @@
+name: Rollback Emergencia API Ficha
+on: workflow_dispatch
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v3
+
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Instalar requests
+        run: pip install requests
+
+      - name: Login en Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Ejecutar script de rollback
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          python -c '
+          import os, subprocess, requests
+          
+          # Obtener token de acceso
+          token = subprocess.check_output(["az", "account", "get-access-token", "--query", "accessToken", "-o", "tsv"]).decode("utf-8").strip()
+          
+          # Leer el XML de contingencia
+          with open("rollback_ficha.xml", "r", encoding="utf-8") as f:
+              xml_content = f.read()
+              
+          url = f"https://management.azure.com/subscriptions/{os.environ[\"AZURE_SUBSCRIPTION_ID\"]}/resourceGroups/rgpacificoprod/providers/Microsoft.ApiManagement/service/ApiMgmt-pacificoProd/apis/api-op-ne-consulta-fichacliente-vida/policies/policy?api-version=2022-08-01"
+          
+          headers = {
+              "Authorization": f"Bearer {token}",
+              "Content-Type": "application/json",
+              "If-Match": "*"
+          }
+          
+          payload = {"properties": {"format": "xml", "value": xml_content}}
+          
+          res = requests.put(url, headers=headers, json=payload)
+          if res.status_code in [200, 201]:
+              print("✅ Rollback exitoso. La política original ha sido restaurada.")
+          else:
+              print(f"❌ Error {res.status_code}: {res.text}")
+              exit(1)
+          '
