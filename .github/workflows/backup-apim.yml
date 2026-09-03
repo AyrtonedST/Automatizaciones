@@ -1,4 +1,4 @@
-name: Backup APIM (Solo Respaldo)
+name: Backup API policies
 
 on:
   workflow_dispatch:
@@ -50,9 +50,17 @@ jobs:
           PRODUCTO_OTRO: ${{ github.event.inputs.producto_otro }}
         run: python scripts/backup_policies.py
 
-      - name: Subir Backup a GitHub para Revisión
+      - name: Determinar nombre del servicio
+        run: |
+          if [ "${{ github.event.inputs.producto }}" == "Otro (Especificar abajo)" ]; then
+            echo "NOMBRE_SERVICIO=${{ github.event.inputs.producto_otro }}" >> $GITHUB_ENV
+          else
+            echo "NOMBRE_SERVICIO=${{ github.event.inputs.producto }}" >> $GITHUB_ENV
+          fi
+
+      - name: Subir Backup a GitHub
         uses: actions/upload-artifact@v4
         with:
-          name: prueba-backup-${{ github.event.inputs.producto }}
+          name: backup-${{ env.NOMBRE_SERVICIO }}
           path: backups/
           retention-days: 1
