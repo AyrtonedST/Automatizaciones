@@ -1,0 +1,48 @@
+name: Generar y Enviar Reporte PDF
+
+on:
+  workflow_dispatch:
+    inputs:
+      totals_data:
+        description: 'Data de totales de Grail'
+        required: true
+      errors_data:
+        description: 'Data de errores de Grail'
+        required: true
+
+jobs:
+  generar-y-enviar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Instalar dependencias (WeasyPrint y Jinja2)
+        run: |
+          sudo apt-get install -y weasyprint
+          pip install jinja2 weasyprint
+
+      - name: Generar PDF con Python
+        env:
+          TOTALS_JSON: ${{ github.event.inputs.totals_data }}
+          ERRORS_JSON: ${{ github.event.inputs.errors_data }}
+        run: python script_generador.py
+
+      - name: Enviar correo con el PDF adjunto
+        uses: dawidd6/action-send-mail@v3
+        with:
+          # Configura aquí el servidor SMTP de tu empresa (Ej: smtp.office365.com o smtp.gmail.com)
+          server_address: smtp.office365.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USER }}
+          password: ${{ secrets.EMAIL_PASS }}
+          subject: "Dashboard: Integración de Pólizas"
+          to: "ayrton.estela@st-computacion.com"
+          from: "Reportes Dynatrace"
+          body: "Hola, adjunto el reporte automático de integración de pólizas extraído desde Dynatrace Grail."
+          attachments: reporte_polizas.pdf
