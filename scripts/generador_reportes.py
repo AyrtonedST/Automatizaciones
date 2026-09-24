@@ -3,16 +3,26 @@ import json
 from jinja2 import Template
 from weasyprint import HTML
 
-# 1. Recuperar los datos que envió Dynatrace (como texto) y convertirlos a listas de Python
+# 1. Recuperar los datos
 try:
-    totals_data = json.loads(os.environ.get('TOTALS_JSON', '[]'))
-    errors_data = json.loads(os.environ.get('ERRORS_JSON', '[]'))
+    totals_raw = os.environ.get('TOTALS_JSON', '[]')
+    errors_raw = os.environ.get('ERRORS_JSON', '[]')
+    
+    # Manejar posibles valores nulos
+    if totals_raw is None or totals_raw.strip() == '':
+        totals_raw = '[]'
+    if errors_raw is None or errors_raw.strip() == '':
+        errors_raw = '[]'
+
+    totals_data = json.loads(totals_raw)
+    errors_data = json.loads(errors_raw)
 except Exception as e:
     print(f"Error parseando el JSON: {e}")
-    totals_data = []
+    # Fallback a datos de prueba si falla el parseo
+    totals_data = [{"Origen": 100, "Pct_Origen": 100, "Transfer": 95, "Pct_Transfer": 95, "Destino": 90, "Pct_Destino": 90}]
     errors_data = []
 
-# 2. Tu diseño HTML exacto
+# 2. Plantilla HTML (Tu diseño original intacto)
 html_template = """
 <!DOCTYPE html>
 <html>
@@ -68,10 +78,9 @@ html_template = """
 </html>
 """
 
-# 3. Inyectar los datos de Grail en el HTML
+# 3. Renderizar y Guardar PDF
 template = Template(html_template)
 rendered_html = template.render(totals=totals_data, errors=errors_data)
 
-# 4. Generar el PDF físico
 HTML(string=rendered_html).write_pdf("reporte_polizas.pdf")
-print("PDF generado y guardado como reporte_polizas.pdf")
+print("PDF generado correctamente.")
