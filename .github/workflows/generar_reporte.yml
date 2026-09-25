@@ -45,5 +45,5 @@ jobs:
           subject: "Dashboard: Integración de Pólizas"
           to: "ayrton.estela@st-computacion.com"
           from: "Reportes Dynatrace"
-          body: "Hola, adjunto el reporte automático de integración de pólizas extraído desde Dynatrace Grail."
+          html_body: file://resumen_email.html
           attachments: reporte_polizas.pdf
