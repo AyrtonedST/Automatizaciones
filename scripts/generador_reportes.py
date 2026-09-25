@@ -3,107 +3,114 @@ import json
 from jinja2 import Template
 from weasyprint import HTML
 
-# 1. Recuperar los datos
+# 1. Recuperar los datos de Dynatrace
 try:
     totals_raw = os.environ.get('TOTALS_JSON', '[]')
     errors_raw = os.environ.get('ERRORS_JSON', '[]')
     
-    # Manejar posibles valores nulos
-    if totals_raw is None or totals_raw.strip() == '':
-        totals_raw = '[]'
-    if errors_raw is None or errors_raw.strip() == '':
-        errors_raw = '[]'
+    if not totals_raw or totals_raw.strip() == '': totals_raw = '[]'
+    if not errors_raw or errors_raw.strip() == '': errors_raw = '[]'
 
     totals_data = json.loads(totals_raw)
     errors_data = json.loads(errors_raw)
 except Exception as e:
     print(f"Error parseando el JSON: {e}")
-    # Fallback a datos de prueba si falla el parseo
-    totals_data = [{"Origen": 100, "Pct_Origen": 100, "Transfer": 95, "Pct_Transfer": 95, "Destino": 90, "Pct_Destino": 90}]
+    totals_data = [{"Origen": 0, "Pct_Origen": 0, "Transfer": 0, "Pct_Transfer": 0, "Destino": 0, "Pct_Destino": 0}]
     errors_data = []
 
-# 2. Plantilla HTML (Tu diseño original intacto)
-html_template = """
+# 2. PLANTILLA PDF (Tema Oscuro estilo Dashboard)
+html_pdf = """
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 650px; margin: 0 auto; color: #333; padding: 20px; }
-        .header { border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: baseline; }
-        .title { color: #0f172a; margin: 0; font-size: 24px; }
-        .subtitle { color: #64748b; font-size: 12px; margin-top: 5px; }
-        .section-title { color: #475569; font-size: 18px; margin-top: 30px; border-left: 4px solid #3b82f6; padding-left: 10px; }
-        .section-title-error { color: #ef4444; font-size: 18px; margin-top: 30px; border-left: 4px solid #ef4444; padding-left: 10px; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #1e1e24; color: #e2e8f0; margin: 0; padding: 20px; }
+        .header-box { background-color: #276749; color: white; padding: 12px; text-align: center; font-weight: bold; font-size: 18px; border-radius: 4px; margin-bottom: 20px; }
+        .card { background-color: #25262b; border: 1px solid #373940; border-radius: 6px; padding: 15px; margin-bottom: 20px; }
+        .card-title { color: #a0aec0; font-size: 14px; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #373940; padding-bottom: 8px; }
         
-        .bar-container { background-color: #e2e8f0; width: 100%; border-radius: 4px; margin-bottom: 15px; }
-        .bar-label { margin: 0 0 5px 0; font-size: 13px; font-weight: bold; color: #334155; }
-        .bar-fill { padding: 4px 10px; color: white; text-align: right; border-radius: 4px; box-sizing: border-box; font-size: 12px; font-weight: bold; }
+        .bar-label { font-size: 12px; margin: 5px 0; color: #cbd5e0; }
+        .bar-bg { background-color: #1a1b1f; width: 100%; height: 22px; border-radius: 2px; margin-bottom: 15px; position: relative; }
+        .bar-fill { height: 100%; border-radius: 2px; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; font-size: 12px; font-weight: bold; color: white; }
         
-        table { width: 100%; border-collapse: collapse; font-size: 13px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        th { background-color: #fee2e2; color: #991b1b; padding: 12px; text-align: left; border-bottom: 2px solid #fca5a5; }
-        td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #475569; }
-        tr:nth-child(even) { background-color: #f8fafc; } /* Estilo Cebra */
-        .poliza-id { font-weight: bold; color: #1e293b; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background-color: #1a1b1f; color: #a0aec0; padding: 10px; text-align: left; border: 1px solid #373940; }
+        td { padding: 10px; border: 1px solid #373940; color: #e2e8f0; }
+        tr:nth-child(even) { background-color: #2c2e33; }
+        .poliza-id { font-weight: bold; color: #fff; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div>
-            <h2 class="title">Dashboard: Integración de Pólizas</h2>
-            <div class="subtitle">Reporte Automático generado desde Dynatrace Grail</div>
-        </div>
-    </div>
+    <div class="header-box">Status Actual - Integración de Pólizas</div>
     
-    <h3 class="section-title">1. Flujo de Datos (Embudo)</h3>
-    <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
-        
+    <div class="card">
+        <h3 class="card-title">Funnel Pólizas</h3>
         <p class="bar-label">Origen</p>
-        <div class="bar-container">
-           <div class="bar-fill" style="background-color: #3b82f6; width: {{ totals[0].Pct_Origen }}%;">
-              {{ totals[0].Origen }} (100%)
-           </div>
+        <div class="bar-bg">
+            <div class="bar-fill" style="background-color: #c53030; width: {{ totals[0].Pct_Origen }}%;">{{ totals[0].Origen }}</div>
         </div>
-
         <p class="bar-label">Transfer</p>
-        <div class="bar-container">
-           <div class="bar-fill" style="background-color: #f59e0b; width: {{ totals[0].Pct_Transfer }}%;">
-              {{ totals[0].Transfer }} ({{ totals[0].Pct_Transfer | round(1) }}%)
-           </div>
+        <div class="bar-bg">
+            <div class="bar-fill" style="background-color: #b7791f; width: {{ totals[0].Pct_Transfer }}%;">{{ totals[0].Transfer }}</div>
         </div>
-
         <p class="bar-label">Destino</p>
-        <div class="bar-container" style="margin-bottom: 0;">
-           <div class="bar-fill" style="background-color: #10b981; width: {{ totals[0].Pct_Destino }}%;">
-              {{ totals[0].Destino }} ({{ totals[0].Pct_Destino | round(1) }}%)
-           </div>
+        <div class="bar-bg" style="margin-bottom: 0;">
+            <div class="bar-fill" style="background-color: #2b6cb0; width: {{ totals[0].Pct_Destino }}%;">{{ totals[0].Destino }}</div>
         </div>
     </div>
 
-    <h3 class="section-title-error">2. Detalle de Errores ({{ errors|length }} encontrados)</h3>
-    <table>
-      <tr>
-        <th style="width: 25%;">Nº Póliza</th>
-        <th>Mensaje de Error detectado en logs</th>
-      </tr>
-      {% for record in errors %}
-      <tr>
-        <td class="poliza-id">{{ record.NUMERO_POLIZA }}</td>
-        <td>{{ record.MENSAJERR if record.MENSAJERR else 'Error desconocido / Timeout' }}</td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="2" style="text-align: center; color: #10b981; font-weight: bold; padding: 20px;">✅ No se detectaron pólizas con error en este periodo.</td>
-      </tr>
-      {% endfor %}
-    </table>
+    <div class="card">
+        <h3 class="card-title">Pólizas con Errores</h3>
+        <table>
+            <tr>
+                <th style="width: 20%;">NUMERO_POLIZA</th>
+                <th>MENSAJERR</th>
+            </tr>
+            {% for record in errors %}
+            <tr>
+                <td class="poliza-id">{{ record.NUMERO_POLIZA }}</td>
+                <td style="color: #fc8181;">{{ record.MENSAJERR }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="2" style="text-align: center; color: #68d391; padding: 15px;">No se encontraron pólizas con errores.</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
 </body>
 </html>
 """
 
-# 3. Renderizar y Guardar PDF
-template = Template(html_template)
-rendered_html = template.render(totals=totals_data, errors=errors_data)
+# 3. PLANTILLA HTML PARA EL CUERPO DEL CORREO
+html_email = """
+<div style="font-family: Arial, sans-serif; color: #333; max-width: 600px;">
+    <h2 style="color: #276749;">Resumen de Integración de Pólizas</h2>
+    <p>Hola, se ha generado el reporte automatizado desde Dynatrace. Aquí tienes un resumen rápido de los resultados:</p>
+    
+    <div style="background-color: #f7fafc; border-left: 4px solid #2b6cb0; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <ul style="list-style-type: none; padding: 0; margin: 0; font-size: 15px;">
+            <li style="margin-bottom: 10px;">📊 <strong>Pólizas en Origen:</strong> {{ totals[0].Origen if totals else 0 }}</li>
+            <li style="margin-bottom: 10px;">✅ <strong>Pólizas procesadas a Destino:</strong> {{ totals[0].Destino if totals else 0 }}</li>
+            <li>⚠️ <strong>Cantidad de Errores:</strong> <span style="color: #e53e3e; font-weight: bold;">{{ errors|length }}</span></li>
+        </ul>
+    </div>
+    
+    <p>Para ver el detalle completo de los errores y el embudo de conversión, por favor revisa el PDF adjunto.</p>
+</div>
+"""
 
-HTML(string=rendered_html).write_pdf("reporte_polizas.pdf")
-print("PDF generado correctamente.")
+# 4. Generar y guardar los archivos
+# Guardar PDF
+template_pdf = Template(html_pdf)
+rendered_pdf = template_pdf.render(totals=totals_data, errors=errors_data)
+HTML(string=rendered_pdf).write_pdf("reporte_polizas.pdf")
+
+# Guardar Email Body
+template_email = Template(html_email)
+rendered_email = template_email.render(totals=totals_data, errors=errors_data)
+with open("resumen_email.html", "w", encoding="utf-8") as f:
+    f.write(rendered_email)
+
+print("Archivos generados exitosamente.")
